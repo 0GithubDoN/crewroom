@@ -91,6 +91,22 @@
   .msg.deleted .body { font-style: italic; color: var(--faint); box-shadow: none; background: transparent; }
   #chatSearch { width: 170px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 12.5px; }
   .toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 30; background: var(--panel); border: 1px solid color-mix(in srgb, var(--warn) 45%, var(--line)); color: var(--text); border-radius: 12px; padding: 9px 14px; box-shadow: var(--shadow); font-size: 13px; max-width: min(560px, 92vw); }
+  /* attachments waiting in the message box until Send */
+  .tray { display: none; gap: 8px; flex-wrap: wrap; padding: 2px 4px 8px; width: 100%; }
+  .tray.on { display: flex; }
+  .tray .pend { position: relative; display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; padding: 4px 26px 4px 4px; background: var(--panel-2); font-size: 12px; max-width: 220px; }
+  .tray .pend img { width: 44px; height: 44px; object-fit: cover; border-radius: 7px; }
+  .tray .pend span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tray .pend button { position: absolute; top: 2px; right: 2px; border: 0; background: none; padding: 0 5px; font-size: 13px; }
+  form.composer { flex-wrap: wrap; }
+  /* image viewer */
+  #viewer { position: fixed; inset: 0; z-index: 40; background: rgba(8, 10, 14, .82); display: none; place-items: center; padding: 28px; cursor: zoom-out; }
+  #viewer.on { display: grid; }
+  #viewer img { max-width: 100%; max-height: calc(100vh - 90px); border-radius: 10px; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); cursor: default; background: #fff; }
+  #viewer .bar { position: fixed; top: 14px; right: 16px; display: flex; gap: 8px; }
+  #viewer .bar a, #viewer .bar button { background: rgba(255, 255, 255, .14); color: #fff; border: 0; border-radius: 9px; padding: 6px 12px; text-decoration: none; font-size: 13px; }
+  #viewer .cap { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); color: #e8e8e8; font-size: 13px; }
+  .api-badge { font-size: 9.5px; padding: 1px 6px; border-radius: 999px; background: color-mix(in srgb, var(--ok) 14%, var(--panel)); color: var(--ok); font-weight: 650; text-transform: uppercase; letter-spacing: .05em; }
   /* in a run of messages from one author, only the last one shows it */
   .msg:has(+ .msg.cont) .seen { display: none; }
   .avatar img { width: 100%; height: 100%; border-radius: 50%; display: block; }
@@ -231,7 +247,7 @@
   dialog::backdrop { background: rgba(0, 0, 0, .4); }
   dialog h2 { margin: 0 0 12px; font-size: 17px; }
   dialog label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
-  dialog input[type=text], dialog input[type=number], dialog select, dialog textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+  dialog input[type=text], dialog input[type=password], dialog input[type=number], dialog select, dialog textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
   dialog textarea { min-height: 100px; resize: vertical; }
   dialog .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   .codebox { font: 600 26px ui-monospace, monospace; letter-spacing: .06em; text-align: center; padding: 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
@@ -344,9 +360,10 @@
     <div class="working-strip" id="working"></div>
     <div class="mention-pop" id="mentionPop"></div>
     <form class="composer" id="composer">
+      <div class="tray" id="tray"></div>
       <select id="to" aria-label="Send to"><option value="">Everyone</option></select>
       <textarea id="text" rows="1" placeholder="Message the team…  @ to mention · Shift+Enter for a new line"></textarea>
-      <button class="ghost" type="button" id="attachBtn" title="Share a file (or drop it anywhere on the page)">📎</button>
+      <button class="ghost" type="button" id="attachBtn" title="Attach files (or paste / drop them): they are sent with your message">📎</button>
       <button class="ghost" type="button" id="reportBtn" title="Test report for the lead: what worked, what failed, screenshots">🧪</button>
       <button class="primary" type="submit">Send</button>
     </form>
@@ -393,11 +410,11 @@
     </div>
   </aside>
 </main>
-<div id="drop">Drop to share with the team</div>
+<div id="drop">Drop to attach to your message</div>
 
 <dialog id="inviteDlg">
   <h2>Invite an AI</h2>
-  <div class="muted" style="font-size:13px">Copy this prompt and paste it into the AI's chat (Claude, Codex, Antigravity, ChatGPT…). It has everything the AI needs to join.</div>
+  <div class="muted" style="font-size:13px">Copy this prompt and paste it into the AI's chat (Claude, Codex, Antigravity, ChatGPT…). It has everything the AI needs to join. Want one that is always on, with no chat window? <a href="#" id="openAgentDlg">Add an always-on AI (API)</a>.</div>
   <div class="row" style="margin-top:12px">
     <span class="faint" style="font-size:12px">Quick pick:</span>
     <button class="small" data-pick-name="Claude">Claude</button><button class="small" data-pick-name="ChatGPT">ChatGPT</button><button class="small" data-pick-name="Gemini">Gemini</button><button class="small" data-pick-name="Codex">Codex</button>
@@ -433,6 +450,20 @@
   <label for="taskDone">Done when (optional)</label><input type="text" id="taskDone" placeholder="e.g. the toggle works and has a test">
   <label for="taskCheck">Check that runs when it's finished (optional)</label><input type="text" id="taskCheck" placeholder="e.g. npm test, a toolbox name, or manual">
   <div class="buttons"><button value="cancel" formnovalidate>Cancel</button><button class="primary" value="ok">Create</button></div>
+</form></dialog>
+
+<div id="viewer" role="dialog" aria-label="Image"><div class="bar"><a id="viewerOpen" target="_blank" rel="noopener">Open original ↗</a><button type="button" id="viewerClose">Close ✕</button></div><img id="viewerImg" alt=""><div class="cap" id="viewerCap"></div></div>
+
+<dialog id="agentDlg"><form method="dialog" id="agentForm">
+  <h2>Add an always-on AI</h2>
+  <div class="muted" style="font-size:13px">Crewroom talks to the model through its API, so it stays in the room without a chat window and without "yes" prompts. It is called only when something concerns it (you pay the provider per use; local Ollama / LM Studio are free). It cannot touch your files: give it research, reviews, writing and planning.</div>
+  <label for="agProvider">Provider</label><select id="agProvider"></select>
+  <label for="agName">Name in the room</label><input type="text" id="agName" required maxlength="32" placeholder="e.g. Perplexity">
+  <label for="agModel">Model</label><input type="text" id="agModel" required>
+  <label for="agUrl">API address</label><input type="text" id="agUrl">
+  <label for="agKey">API key <span class="faint">(stored only on this computer, never shown to the AIs)</span></label><input type="password" id="agKey" autocomplete="off">
+  <label for="agCaps">What it is good at (optional)</label><input type="text" id="agCaps" placeholder="web-search, research">
+  <div class="buttons"><button value="cancel" formnovalidate>Cancel</button><button class="primary" value="ok">Add to the room</button></div>
 </form></dialog>
 
 <dialog id="reportDlg"><form method="dialog" id="reportForm">
@@ -664,7 +695,7 @@ function messageNode(m) {
   // The review hint is for the AIs; the dashboard has buttons for that.
   m = { ...m, text: m.text.replace(/\n\(Review it: update_task review[^)]*\)$/, '') };
   const long = m.text.length > 700 || m.text.split('\n').length > 12;
-  const att = (m.attachments || []).map((a) => a.mime.startsWith('image/') ? `<a href="${a.url}" target="_blank" rel="noopener"><img src="${a.url}" alt="${esc(a.name)}"></a>` : `<a href="${a.url}" target="_blank" rel="noopener">📎 ${esc(a.name)}</a>`).join('');
+  const att = (m.attachments || []).map((a) => a.mime.startsWith('image/') ? `<a href="${a.url}" data-view="${esc(a.url)}" data-name="${esc(a.name)}"><img src="${a.url}" alt="${esc(a.name)}"></a>` : `<a href="${a.url}" target="_blank" rel="noopener">📎 ${esc(a.name)}</a>`).join('');
   wrap.innerHTML = `${avatar(from)}<div class="col">
     <div class="head"><span class="who" style="color:${m.fromId === 'human' ? 'var(--text)' : colorOf(m.from)}">${esc(from)}</span>${m.to !== 'everyone' ? `<span>→ ${esc(m.toId === 'human' ? 'you' : m.to)}</span>` : ''}${m.task_id ? `<span class="tag">${m.task_id}</span>` : ''}<span class="faint">${new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
     <div class="body">${long ? `<div class="txt clamp">${linkify(esc(m.text))}</div><button class="more-btn" type="button">Show more ▾</button>` : linkify(esc(m.text))}${att ? `<div class="att">${att}</div>` : ''}</div><button type="button" class="react-add ghost" data-react-pick="${m.seq}" title="React">☺</button><button type="button" class="msg-del ghost" data-del="${m.seq}" title="Delete message">🗑</button>${reactsHtml(m)}${seenHtml(m)}</div>`;
@@ -701,7 +732,7 @@ function memberCard(m) {
   const doing = m.activity || (m.status === 'working' ? m.lastAction : m.status === 'listening' ? 'waiting for messages' : '');
   return `<div class="member ${m.status} ${m.paused ? 'is-paused' : ''} ${openMembers.has(m.name) ? 'open' : ''}" data-member="${esc(m.name)}">
     <div class="top">${avatar(m.name, m.status)}
-      <div style="min-width:0;flex:1"><div class="name" style="color:${colorOf(m.name)}">${esc(m.name)}${m.role === 'lead' ? '<span class="badge">lead</span>' : ''}${m.rank && (m.rank.manual || (m.rank.title !== 'New' && m.role !== 'lead')) ? `<span class="rank ${m.rank.title}" title="${esc(rankTip(m.rank))}">${m.rank.title}</span>` : ''}${m.paused ? `<span class="badge paused" title="${esc(`by ${m.paused.by}${m.paused.reason ? `: ${m.paused.reason}` : ''}`)}">${m.paused.stopped ? 'stopped' : 'paused'}</span>` : ''}</div>
+      <div style="min-width:0;flex:1"><div class="name" style="color:${colorOf(m.name)}">${esc(m.name)}${m.role === 'lead' ? '<span class="badge">lead</span>' : ''}${m.agent ? '<span class="api-badge" title="Always on: Crewroom calls its API when something concerns it">always on</span>' : ''}${m.rank && (m.rank.manual || (m.rank.title !== 'New' && m.role !== 'lead')) ? `<span class="rank ${m.rank.title}" title="${esc(rankTip(m.rank))}">${m.rank.title}</span>` : ''}${m.paused ? `<span class="badge paused" title="${esc(`by ${m.paused.by}${m.paused.reason ? `: ${m.paused.reason}` : ''}`)}">${m.paused.stopped ? 'stopped' : 'paused'}</span>` : ''}</div>
       <div class="state ${m.status}">${STATE_LABEL[m.status] || m.status}${m.status === 'working' ? ' <span class="typing"><i></i><i></i><i></i></span>' : ''}${['idle', 'offline', 'away'].includes(m.status) ? ` · last contact ${ago(m.lastSeen)}` : ''} · ${esc(m.app)}</div></div>
       ${m.unread && m.status !== 'listening' && m.status !== 'working' ? `<span class="unread" title="Messages are waiting for ${esc(m.name)}. If its app can't wake itself, nudge it there (e.g. “check the room”).">${m.unread} unread</span>` : ''}
       <button class="ghost small" data-toggle="${esc(m.name)}" title="Details">${openMembers.has(m.name) ? '▴' : '▾'}</button>
@@ -712,6 +743,7 @@ function memberCard(m) {
     ${u?.contextPct >= 75 ? `<div class="ctxwarn">⚠ Context ${Math.round(u.contextPct)}% full: time for /compact or a fresh chat <button class="small" data-fresh="${esc(m.name)}">↻ Fresh chat</button></div>` : ''}
     <div class="more">
       <div>${u ? `Usage from ${esc(u.source)}${u.tokensIn ? ` · ${ktok(u.tokensIn)} in / ${ktok(u.tokensOut)} out` : ''}${u.costUsd ? ` · $${u.costUsd.toFixed(2)}` : ''}${u.note ? ` · ${esc(u.note)}` : ''}` : 'This app does not share token usage (cloud apps can only self-report).'}</div>
+      ${m.agent ? `<div style="margin-top:4px">API: ${esc(m.agent.provider)} · ${esc(m.agent.model)} · ${m.agent.calls} call${m.agent.calls === 1 ? '' : 's'} · ${ktok(m.agent.tokensIn)} in / ${ktok(m.agent.tokensOut)} out</div>` : ''}
       <div style="margin-top:4px">Room traffic ≈ ${ktok(m.traffic.tokensIn + m.traffic.tokensOut)} tokens${m.traffic.tokensSaved ? ` · saved ≈ ${ktok(m.traffic.tokensSaved)} by focus mode` : ''}</div>
       <div style="margin-top:4px" title="Every check makes its app reread its whole conversation. Many empty checks = wasted tokens.">Checked the room ${m.stats?.checks || 0}×${m.stats?.checks ? ` (${m.stats.empty || 0} with nothing new)` : ''} · ${m.hasCheckpoint ? 'checkpoint saved ✓' : 'no checkpoint'}</div>
       <div style="margin-top:4px">${esc(m.via || '')}${m.client ? ` · client ${esc(m.client.name)}${m.client.version ? ` ${esc(m.client.version)}` : ''}` : ''} · seen ${ago(m.lastSeen)}</div>
@@ -827,7 +859,7 @@ function render() {
   if (document.querySelector('#tab-log.on') && Date.now() - lastLedger > 4000) loadLedger();
   $('cFiles').textContent = s.claims.length ? s.claims.length : '';
   $('claims').innerHTML = s.claims.length ? s.claims.map((c) => `<div class="line row"><b>${esc(c.path)}</b><span class="muted">· ${esc(c.by)}${c.note ? ` · ${esc(c.note)}` : ''}</span><span class="spacer"></span><button class="small" data-release="${esc(c.path)}">free</button></div>`).join('') : '<div class="empty">Nobody is editing a file.</div>';
-  $('assets').innerHTML = s.assets.length ? s.assets.slice(0, 45).map((a) => `<a href="${a.url}" target="_blank" rel="noopener" title="${esc(a.name)} · from ${esc(a.from)}">${a.mime.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : `<div class="file">${esc(a.name.split('.').pop())}</div>`}${esc(a.name)}</a>`).join('') : '<div class="empty" style="grid-column:1/-1">Nothing shared yet. Drop files anywhere on this page.</div>';
+  $('assets').innerHTML = s.assets.length ? s.assets.slice(0, 45).map((a) => `<a href="${a.url}" target="_blank" rel="noopener" ${a.mime.startsWith('image/') ? `data-view="${esc(a.url)}" data-name="${esc(a.name)}"` : ''} title="${esc(a.name)} · from ${esc(a.from)}">${a.mime.startsWith('image/') ? `<img src="${a.url}" alt="" loading="lazy">` : `<div class="file">${esc(a.name.split('.').pop())}</div>`}${esc(a.name)}</a>`).join('') : '<div class="empty" style="grid-column:1/-1">Nothing shared yet. Use Upload, or attach files to a message (📎, paste or drop).</div>';
 
   $('summary').textContent = s.summary?.text || 'No summary yet. The lead writes one when the chat gets long; newcomers read it instead of the whole history (saves tokens).';
   $('summaryMeta').textContent = s.summary ? `by ${s.summary.by} · ${s.summary.messagesSince} messages since` : '';
@@ -848,10 +880,21 @@ function render() {
 
 $('composer').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const text = $('text').value.trim();
-  if (!text) return;
+  const typed = $('text').value.trim();
+  if (!typed && !pending.length) return;
   const to = $('to').value || undefined;
-  await act('send', { text, to });
+  const files = pending;
+  let ids = [];
+  try {
+    ids = await Promise.all(files.map((p) => uploadSilently(p.file)));
+  } catch (err) {
+    alert(err.message);
+    return;
+  }
+  const text = typed || files.map((p) => `📎 ${p.file.name}`).join('\n');
+  await act('send', { text, to, attachments: ids });
+  pending = [];
+  renderTray();
   $('text').value = '';
   autoGrow();
   warnNotListening(text, to);
@@ -1105,6 +1148,7 @@ document.addEventListener('click', (e) => {
   if (b.dataset.dm) { $('to').value = b.dataset.dm; $('text').focus(); }
   if (b.dataset.fresh) openFresh(b.dataset.fresh);
   if (b.dataset.diff) openDiff(b.dataset.diff);
+  if (b.dataset.unpend !== undefined) { pending.splice(Number(b.dataset.unpend), 1); renderTray(); return; }
   if (b.dataset.del && confirm('Delete this message for everyone? (AIs that already read it keep their copy.)')) act('delete_message', { seq: Number(b.dataset.del) });
   if (b.dataset.merge) {
     const into = prompt(`Merge ${b.dataset.merge} into which member? Its tasks, claims and messages move there and ${b.dataset.merge} is removed.`, '');
@@ -1132,21 +1176,81 @@ document.addEventListener('click', (e) => {
   if (b.dataset.deny) act('approve_command', { command_id: b.dataset.deny, approve: false });
 });
 
+// Files wait in the message box (pasted, dropped or attached) and go out with the message.
+let pending = [];
+function renderTray() {
+  $('tray').classList.toggle('on', pending.length > 0);
+  $('tray').innerHTML = pending.map((p, i) => `<div class="pend">${p.preview ? `<img src="${p.preview}" alt="">` : '📎'}<span title="${esc(p.file.name)}">${esc(p.file.name)}</span><button type="button" data-unpend="${i}" title="Remove">✕</button></div>`).join('');
+}
+function addPending(files) {
+  for (const f of files) {
+    const name = f.name && f.name !== 'image.png' ? f.name : `pasted-${new Date().toISOString().slice(11, 19).replace(/:/g, '')}.${(f.type.split('/')[1] || 'png').replace('jpeg', 'jpg')}`;
+    const file = f.name === name ? f : new File([f], name, { type: f.type });
+    pending.push({ file, preview: f.type.startsWith('image/') ? URL.createObjectURL(f) : null });
+  }
+  renderTray();
+  $('text').focus();
+}
+async function uploadSilently(file) {
+  const res = await fetch(`${base}/upload?silent=1&name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'x-admin-key': KEY, 'content-type': file.type || 'application/octet-stream' }, body: file });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Upload failed');
+  return data.asset.id;
+}
+// The Files tab "Upload" button shares right away (that is what it is for).
 async function upload(files) {
   for (const f of files) {
-    const to = $('to').value;
-    const res = await fetch(`${base}/upload?name=${encodeURIComponent(f.name)}${to ? `&to=${encodeURIComponent(to)}` : ''}`, { method: 'POST', headers: { 'x-admin-key': KEY, 'content-type': f.type || 'application/octet-stream' }, body: f });
+    const res = await fetch(`${base}/upload?name=${encodeURIComponent(f.name)}`, { method: 'POST', headers: { 'x-admin-key': KEY, 'content-type': f.type || 'application/octet-stream' }, body: f });
     if (!res.ok) alert((await res.json().catch(() => ({}))).error || 'Upload failed');
   }
 }
-$('uploadBtn').onclick = () => $('fileInput').click();
-$('attachBtn').onclick = () => $('fileInput').click();
-$('fileInput').onchange = (e) => { upload(e.target.files); e.target.value = ''; };
+$('uploadBtn').onclick = () => { $('fileInput').dataset.mode = 'share'; $('fileInput').click(); };
+$('attachBtn').onclick = () => { $('fileInput').dataset.mode = 'tray'; $('fileInput').click(); };
+$('fileInput').onchange = (e) => { if (e.target.dataset.mode === 'share') upload(e.target.files); else addPending(e.target.files); e.target.value = ''; };
+$('text').addEventListener('paste', (e) => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) { e.preventDefault(); addPending(files); }
+});
+function openViewer(url, name) {
+  $('viewerImg').src = url; $('viewerOpen').href = url; $('viewerCap').textContent = name || '';
+  $('viewer').classList.add('on');
+}
+const closeViewer = () => { $('viewer').classList.remove('on'); $('viewerImg').src = ''; };
+$('viewer').addEventListener('click', (e) => { if (e.target.id === 'viewer' || e.target.id === 'viewerClose') closeViewer(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && $('viewer').classList.contains('on')) closeViewer(); });
+document.addEventListener('click', (e) => {
+  const v = e.target.closest('[data-view]');
+  if (v && !e.ctrlKey && !e.metaKey) { e.preventDefault(); openViewer(v.dataset.view, v.dataset.name); }
+});
+let providers = [];
+async function openAgentDialog() {
+  if (!providers.length) providers = (await fetch(`${base}/agents?key=${encodeURIComponent(KEY)}`).then((r) => r.json())).providers;
+  $('agProvider').innerHTML = providers.map((p) => `<option value="${p.id}">${esc(p.label)}</option>`).join('');
+  $('agentForm').reset();
+  fillProvider();
+  $('inviteDlg').close();
+  $('agentDlg').showModal();
+}
+function fillProvider() {
+  const p = providers.find((x) => x.id === $('agProvider').value);
+  $('agModel').value = p.model; $('agUrl').value = p.baseUrl;
+  $('agKey').placeholder = p.noKey ? 'not needed for a local model' : 'paste the key from your provider';
+  if (!$('agName').value && p.id === 'perplexity') $('agName').value = 'Perplexity';
+}
+$('agProvider').addEventListener('change', fillProvider);
+$('openAgentDlg').onclick = (e) => { e.preventDefault(); openAgentDialog(); };
+$('agentDlg').addEventListener('close', async () => {
+  if ($('agentDlg').returnValue !== 'ok') return;
+  const res = await fetch(`${base}/agents`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-admin-key': KEY }, body: JSON.stringify({ provider: $('agProvider').value, name: $('agName').value.trim(), model: $('agModel').value.trim(), baseUrl: $('agUrl').value.trim(), apiKey: $('agKey').value.trim(), capabilities: $('agCaps').value.trim() }) });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { alert(data.error || 'Could not add it'); return; }
+  toast(`${data.name} is in the room and always on. Mention it or give it a task.`);
+});
 let dragDepth = 0;
 addEventListener('dragenter', (e) => { if (e.dataTransfer?.types?.includes('Files')) { dragDepth++; $('drop').classList.add('on'); } });
 addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('drop').classList.remove('on'); });
 addEventListener('dragover', (e) => e.preventDefault());
-addEventListener('drop', (e) => { e.preventDefault(); dragDepth = 0; $('drop').classList.remove('on'); if (e.dataTransfer.files.length) upload(e.dataTransfer.files); });
+addEventListener('drop', (e) => { e.preventDefault(); dragDepth = 0; $('drop').classList.remove('on'); if (e.dataTransfer.files.length) addPending(e.dataTransfer.files); });
 addEventListener('paste', (e) => { const files = [...(e.clipboardData?.files || [])]; if (files.length) { e.preventDefault(); upload(files); } });
 // Images load after a message is drawn; keep the chat pinned to the bottom unless the user scrolled up.
 let stickToBottom = true;

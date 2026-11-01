@@ -12,6 +12,7 @@ import { homeDir } from './util.js';
 const REINIT_ID = '__crewroom_reinit__';
 const REJOIN_ID = '__crewroom_rejoin__';
 const CHUNK_SECONDS = Number(process.env.CREWROOM_WAIT_CHUNK) || 270; // env: tests only
+const KEEPALIVE_MS = Number(process.env.CREWROOM_KEEPALIVE_MS) || 20_000; // env: tests only
 const log = (...a) => process.stderr.write(`[crewroom] ${a.join(' ')}\n`);
 
 export async function runBridge({ home = homeDir(), lite = false, minimal = false, wait } = {}) {
@@ -22,6 +23,21 @@ export async function runBridge({ home = homeDir(), lite = false, minimal = fals
   const qs = query.size ? `?${query}` : '';
   const pending = new Map(); // internal request id -> resolve
   const longWaits = new Map(); // app request id -> { current internal id, cancelled }
+  // While a wait is open, a small progress signal every 20s tells apps that honour it not to
+  // time the call out. It costs no tokens: nothing reaches the model until the wait returns.
+  const keepAlive = new Map(); // app request id -> interval
+  const startKeepAlive = (msg) => {
+    const token = msg.params?._meta?.progressToken;
+    if (token === undefined || keepAlive.has(msg.id)) return;
+    let n = 0;
+    keepAlive.set(msg.id, setInterval(() => {
+      stdio.send({ jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: token, progress: ++n, message: 'waiting for the team' } }).catch(() => {});
+    }, KEEPALIVE_MS));
+  };
+  const stopKeepAlive = (id) => {
+    clearInterval(keepAlive.get(id));
+    keepAlive.delete(id);
+  };
   const stdio = new StdioServerTransport();
   let http = null;
   let initRequest = null;
@@ -40,6 +56,7 @@ export async function runBridge({ home = homeDir(), lite = false, minimal = fals
         pending.delete(m.id);
         return;
       }
+      if (keepAlive.has(m.id)) stopKeepAlive(m.id);
       if (joinIds.has(m.id)) {
         joinIds.delete(m.id);
         try {
@@ -102,6 +119,7 @@ export async function runBridge({ home = homeDir(), lite = false, minimal = fals
       }
     } finally {
       longWaits.delete(msg.id);
+      stopKeepAlive(msg.id);
     }
   };
 
@@ -112,6 +130,7 @@ export async function runBridge({ home = homeDir(), lite = false, minimal = fals
       msg = { ...msg, params: { ...msg.params, requestId: state.id } };
     }
     if (msg.method === 'tools/call' && msg.params?.name === 'wait_for_updates') {
+      startKeepAlive(msg);
       const seconds = Number(msg.params.arguments?.timeout_seconds ?? wait ?? 45);
       if (seconds > CHUNK_SECONDS) return longWait(msg, seconds);
     }

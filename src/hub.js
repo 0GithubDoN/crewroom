@@ -13,6 +13,7 @@ import { Room, RoomError, HUMAN } from './room.js';
 import { createMcpServer } from './mcp.js';
 import { inviteText, invitePrompt } from './invite.js';
 import { savedDiff } from './taskdiff.js';
+import { AgentRunner, PROVIDERS } from './agents.js';
 import { startTunnel } from './tunnel.js';
 import { collectUsage, parseClaudeStatusline } from './usage.js';
 import { avatarSvg } from './avatars.js';
@@ -50,6 +51,8 @@ export class Hub {
     let room = [...this.rooms.values()].find((r) => r.projectRoot === root);
     if (!room) {
       room = new Room({ projectRoot: root, name });
+      room.agents = new AgentRunner(room, { log: (m) => this.log(m) });
+      room.agents.startAll();
       this.rooms.set(room.code, room);
       this.log(`opened room ${room.code} for ${root}`);
     } else if (name && name !== room.s.name) {
@@ -398,6 +401,19 @@ export class Hub {
     if (sub[0] === 'history') {
       if (!isAdmin(url.searchParams.get('key'))) throw new RoomError('Forbidden', 403);
       return sendJson(res, 200, { messages: room.dashboardMessages({ before: Number(url.searchParams.get('before')) || undefined, limit: 100 }) });
+    }
+
+    // Always-on API members: added by the human from the dashboard, on this computer only.
+    if (sub[0] === 'agents') {
+      if (!isAdmin(req.headers['x-admin-key'] || url.searchParams.get('key'))) throw new RoomError('Forbidden', 403);
+      if (req.method === 'GET') return sendJson(res, 200, { providers: Object.entries(PROVIDERS).map(([id, p]) => ({ id, label: p.label, baseUrl: p.baseUrl, model: p.model, noKey: !!p.noKey })) });
+      if (!local) throw new RoomError('API members can only be added on this computer.', 403);
+      const body = await readJsonBody(req);
+      try {
+        return sendJson(res, 200, await room.agents.add(body));
+      } catch (err) {
+        throw err instanceof RoomError ? err : new RoomError(err.message);
+      }
     }
 
     if (sub[0] === 'log') {
