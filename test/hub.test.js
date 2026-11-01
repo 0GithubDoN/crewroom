@@ -7,6 +7,7 @@ import http from 'node:http';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { Hub } from '../src/hub.js';
+import { HUMAN } from '../src/room.js';
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
@@ -373,4 +374,40 @@ test('an MCP join on this computer also saves the identity for terminal commands
   const now = await call('room_status', { scope: 'me' });
   assert.match(now.content[0].text, /"you":"Termy"/);
   await client.close();
+});
+
+test('always-on API member: waits for free, answers when mentioned, key never leaves the server', { timeout: 30_000 }, async (t) => {
+  const prompts = [];
+  const fake = http.createServer(async (req, res) => {
+    let body = '';
+    for await (const c of req) body += c;
+    const j = JSON.parse(body);
+    prompts.push({ auth: req.headers.authorization, prompt: j.messages.at(-1).content });
+    const seq = Number(j.messages.at(-1).content.match(/#(\d+) [^\n]*@Sonar/)?.[1]);
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ say: [{ text: 'Found it: use the v2 API.' }], react: [{ seq, emoji: '👀' }] }) } }], usage: { prompt_tokens: 120, completion_tokens: 12 } }));
+  });
+  await new Promise((r) => fake.listen(0, '127.0.0.1', r));
+  t.after(() => { fake.closeAllConnections(); fake.close(); });
+  const add = (body) => fetch(`${hub.localBase}/r/${room.code}/agents`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-admin-key': room.adminKey }, body: JSON.stringify(body) });
+  assert.equal((await add({ name: 'Sonar', provider: 'custom', model: 'm' })).status, 400); // no base URL / key
+  const r = await add({ name: 'Sonar', provider: 'custom', baseUrl: `http://127.0.0.1:${fake.address().port}`, model: 'sonar-test', apiKey: 'sk-secret-123' });
+  assert.equal(r.status, 200);
+  await new Promise((r2) => setTimeout(r2, 100));
+  assert.equal(prompts.length, 0, 'no API call while nothing concerns it');
+
+  await room.call('send', HUMAN, { text: '@Sonar which API version should we use?' });
+  const until = async (fn) => { for (let i = 0; i < 100 && !fn(); i++) await new Promise((r2) => setTimeout(r2, 50)); assert.ok(fn()); };
+  await until(() => room.s.messages.some((m) => m.text === 'Found it: use the v2 API.'));
+  assert.equal(prompts[0].auth, 'Bearer sk-secret-123');
+  assert.match(prompts[0].prompt, /@Sonar which API version/);
+  const asked = room.s.messages.find((m) => m.text === '@Sonar which API version should we use?');
+  await until(() => asked.reactions?.['👀']);
+  const sonar = room.snapshot().members.find((m) => m.name === 'Sonar');
+  assert.deepEqual([sonar.agent.calls, sonar.agent.tokensIn], [1, 120]);
+  assert.ok(!JSON.stringify(room.snapshot()).includes('sk-secret-123'));
+  assert.ok(!fs.readFileSync(room.stateFile, 'utf8').includes('sk-secret-123'));
+  // Removing the member stops it and deletes its key.
+  await room.call('kick', HUMAN, { name: 'Sonar' });
+  assert.ok(!fs.readFileSync(path.join(room.dataDir, 'agents.json'), 'utf8').includes('sk-secret-123'));
 });

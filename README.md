@@ -89,6 +89,21 @@ the code and asks to run the tests, which you approve with one click.
 | **ChatGPT** (web, desktop, mobile) | Custom connector (developer mode) with the public MCP URL | **Yes** |
 | **Claude.ai** in the browser | Custom connector with the public MCP URL | **Yes** |
 
+### Always-on AIs (API)
+
+Chat apps in a browser (Perplexity, ChatGPT, Claude.ai) only act while you're typing to
+them, and some ask "yes?" before every action. For a member that is **always on**, add it
+by API: **Invite AI → Add an always-on AI (API)**. Pick a provider (Perplexity Sonar,
+OpenAI, DeepSeek, OpenRouter, Groq, Anthropic, or free local models with Ollama / LM
+Studio), paste its API key, done.
+
+Crewroom waits in the room for it (free) and calls the model only when something concerns
+it: an @mention, a task, a question from you. It replies, reacts, takes and finishes tasks
+and uses memory, with no chat window and no "yes". It can't touch your files, so give it
+research, reviews, writing and planning. The key stays in `.crewroom/agents.json` on your
+computer and is never shown to the other AIs. You pay the provider per use (local models
+are free); API members never reply in an endless loop to each other.
+
 ### Why ChatGPT needs a public link
 
 The ChatGPT desktop app is a window onto ChatGPT's servers. The model, and every
@@ -141,7 +156,8 @@ Agents that save images to disk (Antigravity, Codex...) just share the file.
   file, e.g. Claude's notes about your project: one memory per bullet, duplicates merged,
   grouped by kind and editable. List project knowledge files (like `CLAUDE.md`) in
   Settings and every AI is told to read them when it joins.
-- **Your tools on the dashboard**: drop files (logs, screenshots) into the room, send a 🧪
+- **Your tools on the dashboard**: attach files to a message (📎, paste or drop: they wait
+  in the message box until you press Send), click images to view them in place, send a 🧪
   **test report** (what worked, what failed, files) that becomes a task for the lead,
   delete messages, search the chat, and merge a dead duplicate ("Claude 2") into the real
   member. If you message an AI that isn't listening, the dashboard tells you to nudge it.

@@ -73,7 +73,7 @@ test('stdio bridge: an app joins with the code, and survives a hub restart', asy
 test('stdio bridge: one long wait spans several hub calls, wakes on news, and lite drops file tools', { timeout: 60_000 }, async (t) => {
   await cli(['start', '--json']);
   const links = JSON.parse((await cli(['links', '--json'])).stdout);
-  const transport = new StdioClientTransport({ command: process.execPath, args: [CLI, 'mcp', '--lite', '--wait', '3'], env: { ...env, CREWROOM_WAIT_CHUNK: '1' }, stderr: 'pipe' });
+  const transport = new StdioClientTransport({ command: process.execPath, args: [CLI, 'mcp', '--lite', '--wait', '3'], env: { ...env, CREWROOM_WAIT_CHUNK: '1', CREWROOM_KEEPALIVE_MS: '400' }, stderr: 'pipe' });
   const client = new Client({ name: 'codex-sim', version: '1.0.0' });
   await client.connect(transport);
   t.after(() => client.close()); // a failed assert must not leave the bridge running
@@ -84,8 +84,11 @@ test('stdio bridge: one long wait spans several hub calls, wakes on news, and li
 
   // Nothing happens: the app gets one answer after ~3s (three 1s hub calls in between).
   let t0 = Date.now();
-  let r = await client.callTool({ name: 'wait_for_updates', arguments: {} });
+  let progress = 0;
+  // Apps that pass a progress token get a signal every few seconds, so they don't time out.
+  let r = await client.callTool({ name: 'wait_for_updates', arguments: {} }, undefined, { onprogress: () => progress++, resetTimeoutOnProgress: true, timeout: 2000 });
   assert.ok(Date.now() - t0 >= 2500, `waited ${Date.now() - t0}ms`);
+  assert.ok(progress >= 3, `progress signals: ${progress}`);
   assert.match(r.content[0].text, /^nothing new/);
 
   // News during the second chunk wakes it right away.

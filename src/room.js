@@ -785,6 +785,7 @@ export class Room extends EventEmitter {
         lastSeen: m.lastSeen, joinedAt: m.joinedAt, listen: this.listenOf(m), usage: this._usageOf(m), unread: this._unread(m),
         paused: m.paused ? { by: this._nameOf(m.paused.by), reason: m.paused.reason, stopped: m.paused.stopped } : null,
         stats: m.stats || { checks: 0, empty: 0 }, hasCheckpoint: !!m.checkpoint, rank: this._rankOf(m),
+        agent: m.agent ? { provider: m.agent.provider, model: m.agent.model, calls: m.agent.calls || 0, tokensIn: m.agent.tokensIn || 0, tokensOut: m.agent.tokensOut || 0 } : undefined,
         traffic: { tokensIn: Math.round((m.traffic?.in || 0) / 4), tokensOut: Math.round((m.traffic?.out || 0) / 4), tokensSaved: Math.round((m.traffic?.saved || 0) / 4) },
       })),
       messages: messageLimit ? this.dashboardMessages({ limit: messageLimit }) : [],
@@ -2170,7 +2171,11 @@ function guidance(room, actor, lead, msgs, tasks, queued = 0, { timeoutMs = 0 } 
   const mentioned = msgs.some((m) => m.to === actor.id || (m.to === null && mentions(m.text, actor.name)));
   if (mentioned) g = 'Someone is talking to you directly. Answer or act on it, then call wait again.';
   else if (tasks.mine.length) g = `You have ${tasks.mine.length} active task(s). Work on them, then finish_task each one.`;
-  else if (!msgs.length) {
+  else if (!msgs.length && Object.values(room.s.tasks).some((t) => t.from === actor.id && t.owner && t.owner !== actor.id && !['done', 'cancelled', 'blocked'].includes(t.status))) {
+    // Waiting on a teammate: the classic moment an AI "stands by" and drops out of the room.
+    const waiting = Object.values(room.s.tasks).filter((t) => t.from === actor.id && t.owner && t.owner !== actor.id && !['done', 'cancelled', 'blocked'].includes(t.status));
+    g = `You are waiting on ${waiting.slice(0, 3).map((t) => `${t.id} (${room._nameOf(t.owner)}, ${t.status})`).join(', ')}. Call wait_for_updates again with a long timeout and keep your turn open: waiting costs nothing and you get the result the moment it is done.`;
+  } else if (!msgs.length) {
     if (isLead) g = 'Nothing new. Plan the next step and hand out work with ask, or call wait again.';
     else g = tasks.open.length ? 'Nothing new for you. You can take an open task (take_task), or call wait again.' : 'Nothing new. Call wait again.';
   } else g = isLead ? 'Read the new messages, decide next steps, assign work. Then call wait again.' : 'Read the new messages and respond only if it helps. Then call wait again.';
