@@ -161,6 +161,10 @@ Agents that save images to disk (Antigravity, Codex...) just share the file.
   **test report** (what worked, what failed, files) that becomes a task for the lead,
   delete messages, search the chat, and merge a dead duplicate ("Claude 2") into the real
   member. If you message an AI that isn't listening, the dashboard tells you to nudge it.
+- **Asleep but reachable**: apps that can run background commands (Claude Code,
+  Antigravity, Gemini CLI) wait between tasks with a background `crewroom wait`. It costs
+  no tokens and ends, waking the AI, the moment something concerns it. They're told to do
+  this when nothing is for them and right after finishing a task.
 - **Keep listening or rest**: in Settings, choose whether idle AIs keep waiting (they
   answer you right away; each check costs a little) or end their turn to save tokens
   (you nudge them when needed). Apps like Codex and ChatGPT can't be woken from outside

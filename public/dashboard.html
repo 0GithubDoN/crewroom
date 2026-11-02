@@ -1207,7 +1207,8 @@ async function upload(files) {
 $('uploadBtn').onclick = () => { $('fileInput').dataset.mode = 'share'; $('fileInput').click(); };
 $('attachBtn').onclick = () => { $('fileInput').dataset.mode = 'tray'; $('fileInput').click(); };
 $('fileInput').onchange = (e) => { if (e.target.dataset.mode === 'share') upload(e.target.files); else addPending(e.target.files); e.target.value = ''; };
-$('text').addEventListener('paste', (e) => {
+// One paste handler for the whole page: pasted files wait in the message box until Send.
+addEventListener('paste', (e) => {
   const files = [...(e.clipboardData?.files || [])];
   if (files.length) { e.preventDefault(); addPending(files); }
 });
@@ -1251,7 +1252,7 @@ addEventListener('dragenter', (e) => { if (e.dataTransfer?.types?.includes('File
 addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) $('drop').classList.remove('on'); });
 addEventListener('dragover', (e) => e.preventDefault());
 addEventListener('drop', (e) => { e.preventDefault(); dragDepth = 0; $('drop').classList.remove('on'); if (e.dataTransfer.files.length) addPending(e.dataTransfer.files); });
-addEventListener('paste', (e) => { const files = [...(e.clipboardData?.files || [])]; if (files.length) { e.preventDefault(); upload(files); } });
+
 // Images load after a message is drawn; keep the chat pinned to the bottom unless the user scrolled up.
 let stickToBottom = true;
 $('feed').addEventListener('scroll', () => { const f = $('feed'); stickToBottom = f.scrollHeight - f.scrollTop - f.clientHeight < 90; });

@@ -381,6 +381,19 @@ export class Room extends EventEmitter {
     if (changed && list.length) this._system(`📚 Project knowledge to read first: ${list.join(', ')}`);
   }
 
+  /**
+   * Apps that run terminal commands in the background and wake the AI when one ends (Claude
+   * Code, Antigravity, Gemini CLI, or anyone joined from a terminal) can wait for free: a
+   * background `crewroom wait` ends the moment something concerns them.
+   */
+  _backgroundWait(member) {
+    const app = `${member.client?.name || ''} ${member.app || ''}`;
+    const can = member.via === 'cli' || /claude[- ]?code|antigravity|gemini[- ]?cli/i.test(app) || (member.capabilities || []).includes('background-commands');
+    if (!can) return null;
+    const as = /\s/.test(member.name) ? `"${member.name}"` : member.name;
+    return `crewroom wait --as ${as} --timeout 3600`;
+  }
+
   _resolveTarget(to) {
     if (to === undefined || to === null || to === '' || /^(all|everyone|room|team)$/i.test(String(to))) return null;
     if (/^(human|user|you|me|owner)$/i.test(String(to)) || this._isHumanName(to)) return HUMAN_ID;
@@ -891,6 +904,7 @@ export class Room extends EventEmitter {
       next_step: resume
         ? 'You are back. Continue from your checkpoint and tasks (no hello needed, no need to reread the chat), then call wait_for_updates in a loop.'
         : 'Say hello with send_message (one line: who you are, your model, what you can do), then call wait_for_updates in a loop.',
+      how_to_wait: this._backgroundWait(member) ? `Between tasks, do not poll and do not just stop: run \`${this._backgroundWait(member)}\` in the project folder as a background command and end your turn. It waits for free and wakes you as soon as something concerns you.` : undefined,
     };
   }
 
@@ -1522,7 +1536,9 @@ const ACTIONS = {
     t.pendingStatus = status;
     this._deliverResult(t, owner);
     this._rankCheck(owner.id);
-    return compact({ task: this._taskInfo(t), warning: clean?.warning });
+    const bg = this._backgroundWait(actor);
+    const more = this._tasksFor(actor).mine.length;
+    return compact({ task: this._taskInfo(t), warning: clean?.warning, next: bg && !more ? `Done. Now wait for free: run \`${bg}\` as a background command and end your turn; it wakes you when something concerns you.` : undefined });
   },
 
   /** Lead, asker or any teammate (not the doer): approve a finished task, or send it back. */
@@ -2196,7 +2212,12 @@ function guidance(room, actor, lead, msgs, tasks, queued = 0, { timeoutMs = 0 } 
     });
     if (orphans.length) g += ` ${orphans.map((t) => `${t.id} (${room._nameOf(t.owner || t.to)})`).join(', ')} ${orphans.length > 1 ? 'are' : 'is'} stuck with someone away or disconnected: reassign (ask_member with to "auto").`;
   }
-  // Polling costs tokens: every check makes the app reread its whole conversation.
+  // Polling costs tokens: every check makes the app reread its whole conversation. An app that
+  // can wait in the background gets the free way at once: asleep, but woken by the first news.
+  const bg = room._backgroundWait(actor);
+  if (bg && !msgs.length && !tasks.mine.length && !actor.paused) {
+    return `Nothing for you right now. Wait for free: run \`${bg}\` in the project folder as a background command, then end your turn. It costs no tokens while it waits and ends (waking you) as soon as something concerns you; then act on its output and start it again.${more}`;
+  }
   const canRest = actor.via === 'cli' || room.s.settings.idle === 'rest';
   if (canRest && !msgs.length && !tasks.mine.length && (actor._empty || 0) >= REST_AFTER && timeoutMs < 120_000) {
     return (actor.via === 'cli'
