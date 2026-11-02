@@ -322,6 +322,139 @@
   .st.blocked, .st.denied { background: color-mix(in srgb, var(--bad) 10%, var(--panel)); }
   .approvals { background: color-mix(in srgb, var(--warn) 6%, var(--panel)); }
   dialog { border-radius: 16px; }
+
+  /* =================== Studio theme: dark-first, aurora, motion =================== */
+  :root {
+    --bg: #f3f4f8; --panel: #ffffff; --panel-2: #f6f7fb; --line: #e4e6ee; --line-2: #eceef4;
+    --text: #151823; --muted: #636b7d; --faint: #9aa1b2;
+    --accent: #6d5cff; --accent-2: #2fa6ff; --accent-soft: #efedff; --mine: #f0eeff;
+    --grad: linear-gradient(135deg, #7b61ff 0%, #4f8bff 55%, #22c1ee 100%);
+    --glow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 8px 30px color-mix(in srgb, var(--accent) 22%, transparent);
+    --aurora-a: rgba(123, 97, 255, .16); --aurora-b: rgba(34, 193, 238, .13); --aurora-c: rgba(255, 92, 170, .10);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0d14; --panel: #12151f; --panel-2: #171b27; --line: #232838; --line-2: #1c2130;
+      --text: #e9ebf3; --muted: #959cb0; --faint: #646b80;
+      --accent: #8b7bff; --accent-2: #43b4ff; --accent-soft: #221f3d; --mine: #1d1a38;
+      --aurora-a: rgba(123, 97, 255, .22); --aurora-b: rgba(34, 193, 238, .14); --aurora-c: rgba(255, 92, 170, .10);
+      --shadow: 0 16px 50px rgba(0, 0, 0, .55); --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+    }
+  }
+  body { font-family: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
+
+  /* header: glass, gradient logo, shiny room name */
+  header { border-bottom: 1px solid var(--line-2); background: color-mix(in srgb, var(--panel) 72%, transparent); }
+  .logo { background: var(--grad); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); animation: floaty 6s ease-in-out infinite; }
+  @keyframes floaty { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-2px) rotate(8deg); } }
+  #roomName { background: linear-gradient(90deg, var(--text) 0%, var(--text) 40%, var(--accent) 50%, var(--text) 60%, var(--text) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shine 7s linear infinite; }
+  @keyframes shine { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+  button.primary { background: var(--grad); border: 0; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); position: relative; overflow: hidden; }
+  button.primary:hover { filter: brightness(1.08); box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 45%, transparent); }
+  button.primary:active { transform: scale(.97); }
+  .pill { backdrop-filter: blur(6px); }
+
+  /* layout surfaces */
+  aside.left { background: color-mix(in srgb, var(--panel) 55%, var(--bg)); border-right: 1px solid var(--line-2); }
+  aside.right { background: color-mix(in srgb, var(--panel) 80%, var(--bg)); border-left: 1px solid var(--line-2); }
+  .chatpane { position: relative; isolation: isolate; background: var(--bg); }
+  /* aurora: slow, soft, behind the chat */
+  .chatpane::before { content: ""; position: absolute; inset: -20%; z-index: -1; pointer-events: none; filter: blur(60px);
+    background: radial-gradient(40% 35% at 20% 25%, var(--aurora-a), transparent 70%), radial-gradient(35% 30% at 80% 20%, var(--aurora-b), transparent 70%), radial-gradient(45% 40% at 60% 85%, var(--aurora-c), transparent 70%);
+    animation: aurora 26s ease-in-out infinite alternate; }
+  @keyframes aurora { 0% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(-4%, 3%, 0) scale(1.08); } 100% { transform: translate3d(4%, -2%, 0) scale(1.02); } }
+  .filters { background: color-mix(in srgb, var(--panel) 55%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-2); }
+  .chip.on { background: var(--grad); color: #fff; box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
+
+  /* team list: status rings */
+  .member { background: color-mix(in srgb, var(--panel) 85%, transparent); backdrop-filter: blur(8px); border-color: var(--line-2); transition: transform .2s, box-shadow .2s, border-color .2s; }
+  .member:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(16, 24, 40, .12); }
+  .member.working { box-shadow: var(--shadow-sm), inset 3px 0 0 var(--accent); }
+  .avatar.st-working::before, .avatar.st-listening::before { content: ""; position: absolute; inset: -3px; border-radius: 50%; z-index: -1; }
+  .avatar.st-working, .avatar.st-listening { isolation: isolate; }
+  .avatar.st-working::before { background: conic-gradient(from 0deg, #7b61ff, #22c1ee, #ff5caa, #7b61ff); animation: spin 2.2s linear infinite; }
+  .avatar.st-listening::before { background: color-mix(in srgb, var(--ok) 55%, transparent); animation: breathe 2.8s ease-in-out infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes breathe { 0%, 100% { opacity: .35; transform: scale(1); } 50% { opacity: .9; transform: scale(1.06); } }
+  .member .avatar .dot { display: none; }
+  .avatar img { background: var(--panel); }
+
+  /* messages: Discord-like, with tinted bubbles */
+  #feed { padding: 16px 26px 10px; }
+  .msg { position: relative; padding: 4px 8px 4px 6px; margin-top: 10px; border-radius: 12px; transition: background .15s; max-width: 920px; }
+  .msg:hover { background: color-mix(in srgb, var(--panel) 45%, transparent); }
+  .msg.cont { margin-top: 1px; }
+  .msg > .avatar { width: 36px; height: 36px; }
+  .msg .who { font-size: 14px; letter-spacing: -.01em; }
+  .msg .head { margin-bottom: 3px; }
+  .msg .body { border-radius: 6px 16px 16px 16px; line-height: 1.5; }
+  .msg.human .body { background: var(--grad); color: #fff; border: 0; box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 25%, transparent); border-radius: 16px 6px 16px 16px; }
+  .msg.human .body a { color: #fff; text-decoration: underline; }
+  .msg.human .body .mention { color: #fff; background: rgba(255, 255, 255, .22); }
+  .msg.cont .head { display: none; }
+  .msg .ts { position: absolute; left: 6px; top: 8px; width: 38px; text-align: center; font-size: 10px; color: var(--faint); opacity: 0; transition: opacity .15s; }
+  .msg.cont:hover .ts { opacity: 1; }
+  .msg.enter { animation: msgIn .35s cubic-bezier(.2, .9, .3, 1.2) both; }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+  .notice.enter, details.updates.enter { animation: msgIn .3s ease both; }
+  /* hover toolbar */
+  .msg .tools { position: absolute; top: -14px; right: 12px; display: flex; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-sm); opacity: 0; transform: translateY(4px); transition: opacity .15s, transform .15s; z-index: 3; }
+  .msg:hover .tools, .msg .tools:focus-within { opacity: 1; transform: none; }
+  .msg .tools button { position: static; opacity: 1; border: 0; background: transparent; padding: 3px 7px; border-radius: 7px; font-size: 14px; }
+  .msg .tools button:hover { background: var(--panel-2); transform: scale(1.12); }
+  .react-pick { top: -50px !important; right: 12px !important; animation: popIn .18s cubic-bezier(.2, .9, .3, 1.4) both; }
+  .react-pick button { transition: transform .12s; }
+  .react-pick button:hover { transform: scale(1.35) translateY(-2px); background: none !important; }
+  @keyframes popIn { from { opacity: 0; transform: scale(.7) translateY(6px); } to { opacity: 1; transform: none; } }
+  /* reactions */
+  .reacts button { border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 85%, transparent); transition: transform .15s, border-color .15s; }
+  .reacts button:hover { transform: translateY(-1px); border-color: var(--accent); }
+  .reacts button.mine { background: color-mix(in srgb, var(--accent) 16%, var(--panel)); border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+  .reacts button.pop { animation: reactPop .45s cubic-bezier(.2, .9, .3, 1.6); }
+  @keyframes reactPop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+  .burst { position: fixed; z-index: 60; pointer-events: none; font-size: 15px; animation: burst .7s ease-out forwards; }
+  @keyframes burst { from { opacity: 1; transform: translate(0, 0) scale(.6); } to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1.2); } }
+  /* day separators and the jump pill */
+  .day { display: flex; align-items: center; gap: 10px; margin: 18px 0 6px; color: var(--faint); font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .day::before, .day::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  #jump { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%) translateY(10px); z-index: 5; display: none; border: 0; background: var(--grad); color: #fff; font-weight: 600; font-size: 12.5px; padding: 6px 14px; border-radius: 999px; box-shadow: var(--glow); }
+  #jump.on { display: block; animation: popIn .2s ease both; }
+
+  /* typing bar */
+  .working-strip { font-size: 12.5px; padding: 4px 26px 6px; min-height: 26px; }
+  .working-strip .typing i { background: var(--accent); }
+  .typing i { animation: typingDot 1.2s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes typingDot { 0%, 80%, 100% { transform: translateY(0); opacity: .45; } 40% { transform: translateY(-4px); opacity: 1; } }
+
+  /* composer: gradient glow on focus */
+  form.composer { margin: 0 18px 16px; border-radius: 18px; border: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 88%, transparent); backdrop-filter: blur(12px); transition: box-shadow .2s, border-color .2s; }
+  form.composer:focus-within { border-color: transparent; box-shadow: 0 0 0 1.5px var(--accent), 0 10px 34px color-mix(in srgb, var(--accent) 22%, transparent); }
+  form.composer button[type=submit] { border-radius: 12px; padding: 8px 18px; font-weight: 650; }
+
+  /* tabs, cards, dialogs, toast */
+  .tabs button.on { background: var(--grad) !important; color: #fff; box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 28%, transparent); }
+  .card { transition: transform .15s, box-shadow .15s; }
+  .card:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(16, 24, 40, .1); }
+  dialog { border: 1px solid var(--line); box-shadow: var(--shadow); }
+  dialog[open] { animation: dlgIn .22s cubic-bezier(.2, .9, .3, 1.2) both; }
+  dialog::backdrop { background: rgba(8, 10, 18, .45); backdrop-filter: blur(4px); }
+  @keyframes dlgIn { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+  .toast { animation: toastIn .3s cubic-bezier(.2, .9, .3, 1.2) both; border-radius: 14px; }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .seen { transition: color .15s; }
+
+  @media (max-width: 700px) {
+    form.composer { margin: 0 10px 10px; }
+    form.composer textarea { flex: 1 1 100%; order: -1; min-height: 44px; }
+    form.composer select { max-width: 42%; }
+    form.composer button[type=submit] { margin-left: auto; }
+    #feed { padding: 12px 12px 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
 </style>
 </head>
 <body>
@@ -357,6 +490,7 @@
       <button class="small" id="chapterBtn" title="Archive this chat and continue from a summary. AIs are asked to save a checkpoint and move to a fresh conversation, which cuts their token use.">📖 New chapter</button>
     </div>
     <div id="feed"><button class="small" id="older">Load older messages</button></div>
+    <button type="button" id="jump">New messages ↓</button>
     <div class="working-strip" id="working"></div>
     <div class="mention-pop" id="mentionPop"></div>
     <form class="composer" id="composer">
@@ -557,7 +691,7 @@ const memberByName = (name) => state?.members.find((m) => m.name === name);
 const avatar = (name, status, cls = '') => {
   const url = name !== 'You' && memberByName(name)?.avatar;
   const inner = url ? `<img src="${esc(url)}" alt="">` : esc(initials(name));
-  return `<span class="avatar ${cls}${url ? ' img' : ''}" style="background:${name === 'You' ? '#5b6470' : url ? 'var(--panel-2)' : colorOf(name)}">${inner}${status ? `<span class="dot ${status}"></span>` : ''}</span>`;
+  return `<span class="avatar ${cls}${url ? ' img' : ''}${status ? ` st-${status}` : ''}" style="background:${name === 'You' ? '#5b6470' : url ? 'var(--panel-2)' : colorOf(name)}">${inner}${status ? `<span class="dot ${status}"></span>` : ''}</span>`;
 };
 
 async function post(path, body) {
@@ -592,15 +726,32 @@ const searchQ = () => ($('chatSearch')?.value || '').trim().toLowerCase();
 const matches = (m) => (!searchQ() || `${m.from} ${m.to} ${m.text}`.toLowerCase().includes(searchQ())) && matchesFilter(m);
 const matchesFilter = (m) => filter === 'all' || (filter === 'chat' && (m.kind === 'chat')) || (filter === 'tasks' && (m.kind === 'task' || m.kind === 'result')) || (filter === 'updates' && m.kind === 'system');
 
+// "Today", "Yesterday" or a date between messages from different days.
+let lastDay = null;
+function daySep(m) {
+  const d = new Date(m.time).toDateString();
+  if (d === lastDay) return null;
+  lastDay = d;
+  const today = new Date().toDateString();
+  const yest = new Date(Date.now() - 864e5).toDateString();
+  const el = document.createElement('div');
+  el.className = 'day';
+  el.textContent = d === today ? 'Today' : d === yest ? 'Yesterday' : new Date(m.time).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  return el;
+}
 function renderFeed(scrollToEnd) {
   const feed = $('feed');
-  feed.querySelectorAll('.msg, .notice, details.updates, .empty').forEach((n) => n.remove());
+  feed.querySelectorAll('.msg, .notice, details.updates, .empty, .day').forEach((n) => n.remove());
+  lastDay = null;
   const list = messages.filter(matches);
   if (!list.length) feed.insertAdjacentHTML('beforeend', '<div class="empty" style="padding:30px;text-align:center">Your AIs\' conversation will appear here live.</div>');
   lastAuthor = null;
   for (const m of list) {
     const node = messageNode(m);
-    if (node) feed.appendChild(node);
+    if (!node) continue;
+    const sep = daySep(m);
+    if (sep) { feed.appendChild(sep); lastAuthor = null; }
+    feed.appendChild(node);
   }
   $('older').style.display = messages.length && messages[0].seq > (state?.firstSeq || 1) ? 'block' : 'none';
   if (scrollToEnd) feed.scrollTop = feed.scrollHeight;
@@ -611,12 +762,24 @@ function appendMessages(list) {
   const feed = $('feed');
   const nearBottom = feed.scrollHeight - feed.scrollTop - feed.clientHeight < 90;
   feed.querySelector('.empty')?.remove();
+  let added = 0;
   for (const m of list.filter(matches)) {
     const node = messageNode(m);
-    if (node) feed.appendChild(node);
+    if (!node) continue;
+    const sep = daySep(m);
+    if (sep) feed.appendChild(sep);
+    node.classList.add('enter');
+    feed.appendChild(node);
+    added++;
   }
   if (nearBottom || list.some((m) => m.fromId === 'human')) feed.scrollTop = feed.scrollHeight;
+  else if (added) {
+    unseenBelow += added;
+    $('jump').textContent = `${unseenBelow} new message${unseenBelow > 1 ? 's' : ''} ↓`;
+    $('jump').classList.add('on');
+  }
 }
+let unseenBelow = 0;
 
 // "Seen" = delivered to that AI. Hover shows who; nothing for messages nobody needed to see yet.
 function seenHtml(m) {
@@ -652,6 +815,10 @@ function updateMeta(meta) {
     col.querySelector('.reacts')?.remove();
     col.querySelector('.seen')?.remove();
     col.insertAdjacentHTML('beforeend', reactsHtml(m) + seenHtml(m));
+    if (lastReact && lastReact.seq === Number(seq)) {
+      col.querySelector(`.reacts button[data-react="${CSS.escape(lastReact.emoji)}"]`)?.classList.add('pop');
+      lastReact = null;
+    }
   }
 }
 
@@ -698,8 +865,9 @@ function messageNode(m) {
   const att = (m.attachments || []).map((a) => a.mime.startsWith('image/') ? `<a href="${a.url}" data-view="${esc(a.url)}" data-name="${esc(a.name)}"><img src="${a.url}" alt="${esc(a.name)}"></a>` : `<a href="${a.url}" target="_blank" rel="noopener">📎 ${esc(a.name)}</a>`).join('');
   wrap.innerHTML = `${avatar(from)}<div class="col">
     <div class="head"><span class="who" style="color:${m.fromId === 'human' ? 'var(--text)' : colorOf(m.from)}">${esc(from)}</span>${m.to !== 'everyone' ? `<span>→ ${esc(m.toId === 'human' ? 'you' : m.to)}</span>` : ''}${m.task_id ? `<span class="tag">${m.task_id}</span>` : ''}<span class="faint">${new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></div>
-    <div class="body">${long ? `<div class="txt clamp">${linkify(esc(m.text))}</div><button class="more-btn" type="button">Show more ▾</button>` : linkify(esc(m.text))}${att ? `<div class="att">${att}</div>` : ''}</div><button type="button" class="react-add ghost" data-react-pick="${m.seq}" title="React">☺</button><button type="button" class="msg-del ghost" data-del="${m.seq}" title="Delete message">🗑</button>${reactsHtml(m)}${seenHtml(m)}</div>`;
+    <div class="body">${long ? `<div class="txt clamp">${linkify(esc(m.text))}</div><button class="more-btn" type="button">Show more ▾</button>` : linkify(esc(m.text))}${att ? `<div class="att">${att}</div>` : ''}</div>${reactsHtml(m)}${seenHtml(m)}</div><span class="ts">${new Date(m.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span><div class="tools"><button type="button" class="react-add" data-react-pick="${m.seq}" title="Add reaction">😊</button><button type="button" class="msg-del" data-del="${m.seq}" title="Delete message">🗑</button></div>`;
   wrap.dataset.seq = m.seq;
+  wrap.dataset.day = new Date(m.time).toDateString();
   return wrap;
 }
 const linkify = (html) => html
@@ -817,8 +985,8 @@ function render() {
   const names = (list) => list.length <= 2 ? list.map((m) => m.name).join(' and ') : `${list.slice(0, -1).map((m) => m.name).join(', ')} and ${list.at(-1).name}`;
   $('working').innerHTML = [
     ...(working.length <= 2
-      ? working.map((m) => `<span class="w">${avatar(m.name, '', 'sm')}<b>${esc(m.name)}</b> ${esc(doingOf(m))} <span class="typing"><i></i><i></i><i></i></span></span>`)
-      : [`<span class="w" title="${esc(working.map((m) => `${m.name}: ${doingOf(m)}`).join('\n'))}"><span class="stack">${working.map((m) => avatar(m.name, '', 'sm')).join('')}</span><span><b>${esc(names(working))}</b> are working <span class="typing"><i></i><i></i><i></i></span></span></span>`]),
+      ? working.map((m) => `<span class="w" title="${esc(doingOf(m))}">${avatar(m.name, '', 'sm')}<b>${esc(m.name)}</b> is typing <span class="typing"><i></i><i></i><i></i></span> <span class="faint">${esc(doingOf(m))}</span></span>`)
+      : [`<span class="w" title="${esc(working.map((m) => `${m.name}: ${doingOf(m)}`).join('\n'))}"><span class="stack">${working.map((m) => avatar(m.name, '', 'sm')).join('')}</span><span><b>${esc(names(working))}</b> are typing <span class="typing"><i></i><i></i><i></i></span></span></span>`]),
     listening.length ? `<span class="w faint">${esc(names(listening))} listening</span>` : '',
   ].join('');
 
@@ -923,6 +1091,26 @@ function toast(text) {
   toastTimer = setTimeout(() => t.remove(), 9000);
 }
 $('chatSearch').addEventListener('input', () => renderFeed(false));
+$('jump').onclick = () => $('feed').scrollTo({ top: $('feed').scrollHeight, behavior: 'smooth' });
+$('feed').addEventListener('scroll', () => {
+  const f = $('feed');
+  if (f.scrollHeight - f.scrollTop - f.clientHeight < 90) { unseenBelow = 0; $('jump').classList.remove('on'); }
+});
+// A small burst of the emoji where you clicked, and a pop on its chip.
+function burst(x, y, emoji) {
+  for (let i = 0; i < 7; i++) {
+    const b = document.createElement('span');
+    b.className = 'burst';
+    b.textContent = emoji;
+    const a = (Math.PI * 2 * i) / 7 + Math.random() * .5;
+    b.style.left = `${x - 8}px`; b.style.top = `${y - 10}px`;
+    b.style.setProperty('--dx', `${Math.cos(a) * (28 + Math.random() * 22)}px`);
+    b.style.setProperty('--dy', `${Math.sin(a) * (28 + Math.random() * 22) - 18}px`);
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 750);
+  }
+}
+let lastReact = null;
 $('reportBtn').onclick = () => { $('reportForm').reset(); $('reportDlg').showModal(); };
 $('reportDlg').addEventListener('close', async () => {
   if ($('reportDlg').returnValue !== 'ok' || !$('repTitle').value.trim()) return;
@@ -1167,10 +1355,17 @@ document.addEventListener('click', (e) => {
   if (b.dataset.toolRemove && confirm(`Remove the tool "${b.dataset.toolRemove}"?`)) act('toolbox', { action: 'remove', name: b.dataset.toolRemove });
   if (b.dataset.reactPick) {
     document.querySelector('.react-pick')?.remove();
-    b.closest('.col').insertAdjacentHTML('beforeend', `<div class="react-pick">${REACTS.map((e) => `<button type="button" data-react="${e}" data-seq="${b.dataset.reactPick}">${e}</button>`).join('')}</div>`);
+    b.closest('.msg').insertAdjacentHTML('beforeend', `<div class="react-pick">${REACTS.map((e) => `<button type="button" data-react="${e}" data-seq="${b.dataset.reactPick}">${e}</button>`).join('')}</div>`);
     return;
   }
-  if (b.dataset.react) { document.querySelector('.react-pick')?.remove(); act('react', { seq: Number(b.dataset.seq), emoji: b.dataset.react }); return; }
+  if (b.dataset.react) {
+    const r = b.getBoundingClientRect(); // measure before the picker goes away
+    document.querySelector('.react-pick')?.remove();
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) burst(r.left + r.width / 2, r.top + r.height / 2, b.dataset.react);
+    lastReact = { seq: Number(b.dataset.seq), emoji: b.dataset.react };
+    act('react', lastReact);
+    return;
+  }
   if (b.dataset.release) act('release_file', { path: b.dataset.release });
   if (b.dataset.approve) act('approve_command', { command_id: b.dataset.approve, approve: true });
   if (b.dataset.deny) act('approve_command', { command_id: b.dataset.deny, approve: false });
