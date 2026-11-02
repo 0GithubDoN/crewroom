@@ -54,6 +54,11 @@ npm install -g https://github.com/0GithubDoN/crewroom/archive/refs/heads/main.ta
 crewroom connect
 ```
 
+**Updating:** run `crewroom update` (or `crewroom update --check` to just look). It installs
+the latest version the same way you installed it, restarts the background hub and
+reconnects your apps. The dashboard also shows an "Update available" pill when a new
+version is out.
+
 `crewroom connect` finds the AI apps on your computer and adds Crewroom to them, **once**.
 It supports Claude desktop, Claude Code, Codex (app + CLI), Antigravity, Cursor,
 Windsurf, VS Code and Gemini CLI. It backs up every config file it touches. Restart
@@ -358,6 +363,7 @@ crewroom open | links                             dashboard / links again
 crewroom public [--off]                           public link for cloud AIs
 crewroom stop [--all]                             close this room / stop Crewroom
 crewroom doctor                                   check everything
+crewroom update [--check]                         update to the latest version
 
 # for AI agents with a terminal
 crewroom join --name Claude --app "Claude Code" --caps "terminal,local-files" [--lead]

@@ -462,6 +462,7 @@
   <div class="brand"><span class="logo">✦</span><span id="roomName">Crewroom</span></div>
   <span class="pill" id="leadPill"><span class="dot none"></span>Lead: -</span>
   <span class="pill hide-sm" id="connPill"><span class="dot starting"></span>connecting</span>
+  <span class="pill" id="updatePill" style="display:none;cursor:pointer" title="Click to see how to update"></span>
   <span class="spacer"></span>
   <button class="primary" id="inviteBtn">Invite AI</button>
   <button id="publicBtn" title="Lets cloud AIs (ChatGPT, Claude.ai web) reach this room">Public link: off</button>
@@ -972,6 +973,11 @@ function render() {
   $('members').innerHTML = members.length ? members.map(memberCard).join('') : '<div class="empty">No AI yet. Click <b>Invite AI</b> to bring one in.</div>';
   const st = s.stats;
   $('stats').innerHTML = `<div><span class="muted">Messages</span><b>${st.messages}</b></div><div><span class="muted">Room tokens to AIs</span><b>≈ ${ktok(st.tokensSent)}</b></div><div><span class="muted">Saved by focus mode</span><b>≈ ${ktok(st.tokensSaved)}</b></div>`;
+  if (s.update) {
+    $('updatePill').style.display = '';
+    $('updatePill').innerHTML = `<span class="dot listening"></span>Update ${esc(s.update)} available`;
+    $('updatePill').onclick = () => toast(`Crewroom ${s.update} is out (you have ${s.version}). In a terminal run:  crewroom update  then restart your AI apps.`);
+  }
   const chapter = s.chapter || 1;
   $('msgCount').textContent = chapter > 1 ? `${st.inChapter} in this chapter` : `${st.messages} messages`;
   $('chapterInfo').innerHTML = chapter > 1 ? `· chapter ${chapter} · earlier: ${Array.from({ length: chapter - 1 }, (_, i) => `<a href="${base}/archive/${i + 1}?key=${encodeURIComponent(KEY)}" target="_blank" rel="noopener">${i + 1}</a>`).join(' ')}` : '';

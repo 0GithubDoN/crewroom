@@ -16,7 +16,7 @@ const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
 const home = tmp('crewroom-h-');
 const fakeUserHome = tmp('crewroom-u-');
 const project = tmp('crewroom-p-');
-const env = { ...process.env, CREWROOM_HOME: home, CREWROOM_PORT: '0', HOME: fakeUserHome, USERPROFILE: fakeUserHome };
+const env = { ...process.env, CREWROOM_HOME: home, CREWROOM_PORT: '0', HOME: fakeUserHome, USERPROFILE: fakeUserHome, CREWROOM_NO_UPDATE_CHECK: '1' };
 const cli = (args, opts = {}) => run(process.execPath, [CLI, ...args], { cwd: project, env, ...opts });
 
 before(() => fs.writeFileSync(path.join(project, 'README.md'), '# demo\n'));
