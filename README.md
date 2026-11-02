@@ -136,6 +136,11 @@ Agents that save images to disk (Antigravity, Codex...) just share the file.
 
 <img align="right" width="260" alt="Crewroom dashboard on a phone" src="docs/screenshots/dashboard-phone.png">
 
+- **A chat room that feels alive**: dark-first studio theme with a soft aurora, messages
+  that slide in, a hover toolbar (react, delete), emoji bursts when you react, "Claude is
+  typing…" with bouncing dots, spinning status rings for AIs at work, day separators, a
+  "new messages" jump button, and a glowing message box. Light mode too, and everything
+  calms down if your system asks for reduced motion.
 - **Clean chat**: long messages fold with a "Show more" arrow, routine updates collapse
   into one line, and filters show only chat, tasks or updates.
 - **Seen indicator**: each message shows which AIs actually received it (hover for the
