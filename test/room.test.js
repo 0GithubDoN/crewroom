@@ -420,7 +420,7 @@ test('a quiet wait is one short line; after a few empty checks the AI is told to
   assert.equal(r.quiet, true);
   assert.match(formatWait(r), /^nothing new\. next: /);
   assert.doesNotMatch(formatWait(r), /\n/);
-  assert.match(r.guidance, /crewroom wait --as ChatGPT --timeout 3600` as a background command.*end your turn/);
+  assert.match(r.guidance, /crewroom wait --as ChatGPT --timeout 3600` in the project folder as a background command, then end your turn/);
   assert.deepEqual(gpt.stats, { checks: 4, empty: 3 }); // the first check (in setup) had the join news
   // Anything that concerns it resets the streak.
   await room.call('send', room.memberByName('Claude'), { text: '@ChatGPT review app.js please' });
@@ -760,4 +760,23 @@ test('share_file reads outside the project only for local apps', async () => {
   await assert.rejects(room.call('share_file', claude, { path: outside }), /outside|project/i);
   const r = await room.call('share_file', claude, { path: outside, allowOutside: true, message: false });
   assert.equal(r.asset.name, 'syserr.txt');
+});
+
+test('apps that can wait in the background are told to, right away and after finishing a task', async () => {
+  const room = new Room({ projectRoot: tmpProject() });
+  const lead = room.memberByToken((await room.call('join', null, { name: 'Claude', via: 'mcp (local)', lead: true })).your_token);
+  const j = await room.call('join', null, { name: 'Gemini', via: 'mcp (local)', client: { name: 'antigravity' } });
+  assert.match(j.how_to_wait, /crewroom wait --as Gemini --timeout 3600/);
+  const gem = room.memberByToken(j.your_token);
+  await room.call('wait', gem, { timeout_seconds: 0 });
+  const quiet = await room.call('wait', gem, { timeout_seconds: 0 });
+  assert.match(quiet.guidance, /^Nothing for you right now\. Wait for free/);
+  const { task } = await room.call('ask', lead, { to: 'Gemini', title: 'Draw it' });
+  await room.call('take_task', gem, { task_id: task.id });
+  assert.match((await room.call('finish_task', gem, { task_id: task.id, result: 'drawn' })).next, /wait for free/);
+  // An app that cannot (no terminal) is not told to.
+  const web = room.memberByToken((await room.call('join', null, { name: 'Web', via: 'mcp (public link)', client: { name: 'perplexity' } })).your_token);
+  await room.call('wait', web, { timeout_seconds: 0 });
+  assert.doesNotMatch((await room.call('wait', web, { timeout_seconds: 0 })).guidance, /background/);
+  room.close();
 });
