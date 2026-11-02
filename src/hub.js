@@ -14,6 +14,7 @@ import { createMcpServer } from './mcp.js';
 import { inviteText, invitePrompt } from './invite.js';
 import { savedDiff } from './taskdiff.js';
 import { AgentRunner, PROVIDERS } from './agents.js';
+import { latestVersion, newer } from './update.js';
 import { startTunnel } from './tunnel.js';
 import { collectUsage, parseClaudeStatusline } from './usage.js';
 import { avatarSvg } from './avatars.js';
@@ -187,6 +188,14 @@ export class Hub {
     writeJson(hubFile(this.home), { app: 'crewroom', version: VERSION, hubId: this.id, key: this.key, port: this.port, pid: process.pid, startedAt: new Date().toISOString() }, { mode: 0o600 });
     this._gc = setInterval(() => this._cleanup(), 10 * 60_000);
     this._usageTimer = setInterval(() => this.refreshUsage(), 20_000);
+    // A new version on GitHub shows on the dashboard (checked every 6 hours; never blocks anything).
+    this.latest = null;
+    const checkUpdate = () => latestVersion().then((v) => { this.latest = newer(v, VERSION) ? v : null; }).catch(() => {});
+    if (!process.env.CREWROOM_NO_UPDATE_CHECK) {
+      checkUpdate();
+      this._updateTimer = setInterval(checkUpdate, 6 * 3600_000);
+      this._updateTimer.unref?.();
+    }
     this._usageTimer.unref();
     this.refreshUsage();
     this._gc.unref();
@@ -253,6 +262,7 @@ export class Hub {
   async stop() {
     clearInterval(this._gc);
     clearInterval(this._usageTimer);
+    clearInterval(this._updateTimer);
     this.tunnel.handle?.stop();
     for (const s of this.sessions.values()) await s.transport.close().catch(() => {});
     for (const room of this.rooms.values()) room.close();
@@ -459,7 +469,7 @@ export class Hub {
         }
         if (messages.length) lastSeq = messages[messages.length - 1].seq;
         else if (reset) lastSeq = room.s.seq;
-        res.write(`data: ${JSON.stringify({ ...room.snapshot({ messageLimit: 0 }), messages, meta, reset, links: this.links(room) })}\n\n`);
+        res.write(`data: ${JSON.stringify({ ...room.snapshot({ messageLimit: 0 }), messages, meta, reset, links: this.links(room), version: VERSION, update: this.latest })}\n\n`);
       };
       let timer = null;
       const onChange = () => { if (!timer) timer = setTimeout(() => { timer = null; push(); }, 120); };

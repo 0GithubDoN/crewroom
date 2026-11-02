@@ -8,6 +8,9 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { Hub } from '../src/hub.js';
 import { HUMAN } from '../src/room.js';
+import { newer, installKind } from '../src/update.js';
+
+process.env.CREWROOM_NO_UPDATE_CHECK = '1'; // no network in tests
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const tmp = (p) => fs.mkdtempSync(path.join(os.tmpdir(), p));
@@ -410,4 +413,12 @@ test('always-on API member: waits for free, answers when mentioned, key never le
   // Removing the member stops it and deletes its key.
   await room.call('kick', HUMAN, { name: 'Sonar' });
   assert.ok(!fs.readFileSync(path.join(room.dataDir, 'agents.json'), 'utf8').includes('sk-secret-123'));
+});
+
+test('update: version comparison and how this copy was installed', () => {
+  assert.equal(newer('1.0.10', '1.0.9'), true);
+  assert.equal(newer('1.0.0', '1.0.0'), false);
+  assert.equal(newer('0.9.1', '1.0.0'), false);
+  assert.equal(installKind(path.join(process.cwd(), 'bin', 'crewroom.js')), 'git');
+  assert.equal(installKind('/usr/lib/node_modules/crewroom/bin/crewroom.js'), 'npm');
 });

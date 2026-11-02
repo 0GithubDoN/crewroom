@@ -8,7 +8,7 @@ import { homeDir, readJson, writeJson, normalizeCode, openInBrowser, VERSION, CL
 import { ensureHub, runningHub, hubApi, findProjectRoot } from '../src/client.js';
 import { formatWait, formatMessage as fmtMsg, formatTask } from '../src/format.js';
 
-const BOOLEAN_FLAGS = new Set(['lead', 'all', 'json', 'decision', 'away', 'back', 'public', 'open', 'yes', 'y', 'list', 'off', 'new-code', 'help', 'h', 'remove', 'stdin', 'private', 'lite', 'resume', 'minimal']);
+const BOOLEAN_FLAGS = new Set(['lead', 'all', 'json', 'decision', 'away', 'back', 'public', 'open', 'yes', 'y', 'list', 'off', 'new-code', 'help', 'h', 'remove', 'stdin', 'private', 'lite', 'resume', 'minimal', 'check', 'force']);
 
 function parseArgs(argv) {
   const flags = {};
@@ -46,6 +46,7 @@ START A ROOM (in your project folder)
   crewroom stop [--all]         close this project's room (--all: stop Crewroom)
   crewroom start --new-code     new room code, everyone removed (if a link leaked)
   crewroom doctor               check that everything works
+  crewroom update [--check]     update Crewroom to the latest version (--check: only look)
 
 FOR AI AGENTS WITH A TERMINAL (run in the project folder)
   crewroom join --name Claude --app "Claude Code" --caps "terminal,local-files" [--lead]
@@ -320,6 +321,39 @@ async function cmdStatusline() {
   } catch {}
 }
 
+async function cmdUpdate(flags) {
+  const { latestVersion, newer, install, installKind } = await import('../src/update.js');
+  let latest;
+  try {
+    latest = await latestVersion();
+  } catch (err) {
+    die(`Could not check for updates (${err.message}). Check your internet connection.`);
+  }
+  if (!newer(latest, VERSION) && !flags.force) return console.log(`Crewroom ${VERSION} is up to date.`);
+  console.log(newer(latest, VERSION) ? `Update available: ${VERSION} → ${latest}` : `Reinstalling ${latest}...`);
+  if (flags.check) return console.log('Run "crewroom update" to install it.');
+  const kind = installKind();
+  // Stop the background hub first, so its files can be replaced. Rooms are saved and reopen.
+  const hub = await runningHub().catch(() => null);
+  if (hub) await hubApi(hub, 'shutdown', {}).catch(() => {});
+  console.log(kind === 'portable' ? 'Downloading the Windows package...' : 'Installing with npm...');
+  try {
+    await install(kind);
+  } catch (err) {
+    die(`Update failed: ${err.message}`);
+  }
+  if (kind === 'npm') {
+    // The new version re-adds Crewroom to your apps (settings can change between versions).
+    const { spawn } = await import('node:child_process');
+    await new Promise((resolve) => {
+      const child = spawn(process.platform === 'win32' ? 'crewroom.cmd' : 'crewroom', ['connect'], { stdio: 'inherit', shell: process.platform === 'win32' });
+      child.on('exit', resolve);
+      child.on('error', resolve);
+    });
+  }
+  console.log(`\nUpdated to ${latest}. Restart your AI apps; your rooms open again with "crewroom start" (or "crewroom open").`);
+}
+
 async function cmdDoctor() {
   const ok = (b, msg) => console.log(`${b ? '✓' : '✗'} ${msg}`);
   const major = Number(process.versions.node.split('.')[0]);
@@ -379,6 +413,8 @@ async function main() {
     case 'setup': return cmdConnect(pos, flags);
     case 'disconnect': return cmdConnect(pos, flags, { remove: true });
     case 'doctor': return cmdDoctor();
+    case 'update':
+    case 'upgrade': return cmdUpdate(flags);
   }
 
   // ---- agent commands ----
