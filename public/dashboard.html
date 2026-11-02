@@ -455,6 +455,41 @@
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   }
+
+  /* =================== Premium palette: neutral greys, one quiet accent, no gradients =================== */
+  :root {
+    --bg: #f7f7f8; --panel: #ffffff; --panel-2: #f2f2f4; --line: #e3e3e8; --line-2: #ececf0;
+    --text: #17171c; --muted: #5d5d6b; --faint: #9a9aa6;
+    --accent: #5e6ad2; --accent-2: #5e6ad2; --accent-soft: #eef0fb; --mine: #eef0fb;
+    --ok: #2f9e6a; --warn: #b7791f; --bad: #d1453b;
+    --grad: var(--accent);
+    --glow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+    --shadow: 0 12px 32px rgba(17, 17, 26, .10); --shadow-sm: 0 1px 2px rgba(17, 17, 26, .05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0b0d; --panel: #121215; --panel-2: #18181c; --line: #26262c; --line-2: #1e1e23;
+      --text: #ececf0; --muted: #a0a0ab; --faint: #6c6c78;
+      --accent: #7c85e0; --accent-2: #7c85e0; --accent-soft: #1d1f33; --mine: #1d1f33;
+      --ok: #4cc38a; --warn: #e0a54a; --bad: #f0675d;
+      --shadow: 0 16px 40px rgba(0, 0, 0, .55); --shadow-sm: 0 1px 2px rgba(0, 0, 0, .45);
+    }
+  }
+  .chatpane::before { display: none; }
+  #roomName { background: none; color: var(--text); -webkit-background-clip: border-box; background-clip: border-box; animation: none; }
+  .logo { background: var(--text); color: var(--bg); box-shadow: none; animation: none; border-radius: 8px; }
+  button.primary { background: var(--accent); box-shadow: none; }
+  button.primary:hover { filter: none; background: color-mix(in srgb, var(--accent) 88%, #000); box-shadow: none; }
+  .chip.on { background: var(--panel); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+  .tabs button.on { background: var(--panel-2) !important; color: var(--text); box-shadow: inset 0 0 0 1px var(--line); }
+  .avatar.st-working::before { background: none; border: 2px solid var(--accent); animation: breathe 1.6s ease-in-out infinite; }
+  .avatar.st-listening::before { background: none; border: 2px solid color-mix(in srgb, var(--ok) 70%, transparent); }
+  .msg.human .body { background: var(--accent); box-shadow: none; }
+  #jump { background: var(--text); color: var(--bg); box-shadow: var(--shadow); }
+  form.composer:focus-within { box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm); }
+  .member.working { box-shadow: var(--shadow-sm), inset 2px 0 0 var(--accent); }
+  .member:hover, .card:hover { box-shadow: var(--shadow-sm); transform: none; }
+  .mention { font-weight: 600; }
 </style>
 </head>
 <body>
@@ -666,7 +701,7 @@ let filter = 'all';
 let openMembers = new Set();
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const palette = ['#d9822b', '#3b6fd8', '#1f9d55', '#9b51e0', '#d03b30', '#0e9aa7', '#b8860b', '#d6336c'];
+const palette = ['#c27a3a', '#4f7cc7', '#3f9a6e', '#8a63c9', '#c4554b', '#2f9aa6', '#a88a3a', '#c45a85'];
 const hashColor = (name) => { let h = 0; for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % palette.length; };
 // Members keep their hashed colour unless an earlier member already has it: then the next free one.
 let colorMap = new Map();

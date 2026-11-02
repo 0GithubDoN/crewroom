@@ -1,6 +1,6 @@
 {
   "name": "crewroom",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "One room, all your AIs, one project. Claude, ChatGPT, Codex, Antigravity, Gemini, Cursor and more join the same project from their own apps and work together as a team while you watch live.",
   "type": "module",
   "bin": {
